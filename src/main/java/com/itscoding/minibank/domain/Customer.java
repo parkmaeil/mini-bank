@@ -55,4 +55,9 @@ public class Customer {
                 '}';
     }
 
+    // Customer.java 내부에 추가되는 메서드
+    public void addAccount(Account account) {
+        this.accounts.add(account);
+    }
+
 }
