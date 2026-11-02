@@ -1,5 +1,6 @@
 package com.itscoding.minibank.dto;
  
+import com.itscoding.minibank.validation.AccountNumber;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +11,7 @@ public class AccountCreateRequestDto {
 
     @Schema(description = "예금주명", example = "홍길동")
     @NotBlank(message = "예금주명은 필수입니다.")
+    //@AccountNumber
     private String ownerName;
 
     @Schema(description = "초기 입금액(원)", example = "50000")
