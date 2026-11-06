@@ -21,6 +21,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
+
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
+	implementation 'org.flywaydb:flyway-mysql'
+
+	// 🔥 [신규 추가] JPA (Java 객체와 DB를 매핑해주는 기술)
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	// 🔥 [신규 추가] MySQL 서버와 통신하기 위한 드라이버
+	runtimeOnly 'com.mysql:mysql-connector-j'   // 버전은 Spring Boot가 관리
+
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
