@@ -1,5 +1,8 @@
 package com.itscoding.minibank.controller;
  
+import com.itscoding.minibank.dto.TransferRequestDto;
+import com.itscoding.minibank.service.AuditService;
+import com.itscoding.minibank.service.TransferFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -22,7 +25,8 @@ import java.util.List;
 public class AccountController {
  
     private final AccountService accountService;
- 
+    private final AuditService auditService;
+    private final TransferFacade transferFacade;   // 필드 추가
     // POST /api/accounts (계좌 생성)
     @Operation(summary = "계좌 개설", description = "등록된 고객에게 새 계좌를 개설합니다.")
     @ApiResponses({
@@ -53,5 +57,27 @@ public class AccountController {
     @GetMapping
     public ResponseEntity<List<AccountResponseDto>> getAllAccounts() {
         return ResponseEntity.ok(accountService.getAllAccounts());
+    }
+
+    // 🔥 [신규] 계좌 이체 엔드포인트
+    @Operation(summary = "계좌 이체", description = "출금 계좌에서 입금 계좌로 금액을 옮깁니다. 동시 처리 충돌은 최대 3번까지 자동으로 다시 시도합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "이체 성공"),
+            @ApiResponse(responseCode = "400", description = "입력값 검증 실패 또는 같은 계좌로 이체"),
+            @ApiResponse(responseCode = "404", description = "계좌 없음"),
+            @ApiResponse(responseCode = "409", description = "잔액 부족 또는 동시 처리 충돌")
+    })
+    @PostMapping("/transfer")
+    public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
+        try {
+            //accountService.transfer(request);
+            transferFacade.transferWithRetry(request);       // ← 재시도 포함
+        } catch (RuntimeException e) {
+            // 이체가 롤백돼도 기록은 남는다
+            auditService.recordFailure("TRANSFER", e.getMessage());
+            // 예외는 다시 던져 전역 처리기로
+            throw e;
+        }
+        return ResponseEntity.ok().build();
     }
 }
