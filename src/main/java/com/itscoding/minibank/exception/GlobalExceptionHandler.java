@@ -29,4 +29,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest() // 400 상태 코드
                 .body(Map.of("message", message));
     }
+
+    // [6장 추가] 고객을 찾을 수 없을 때 (404)
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleCustomerNotFound(
+            CustomerNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    // [6장 추가] 업무 규칙 충돌 — 예: 계좌가 있는 고객 삭제 (409)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(
+            IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", e.getMessage()));
+    }
+
 }

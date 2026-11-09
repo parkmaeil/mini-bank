@@ -17,14 +17,13 @@ public class AccountResponseDto {
         AccountResponseDto dto = new AccountResponseDto();
         dto.id = account.getId();
         dto.accountNumber = account.getAccountNumber();
-        //dto.ownerName = account.getOwnerName();
         // 연관관계로 연결된 Customer 객체를 따라가 이름을 꺼낸다
         dto.ownerName = account.getCustomer().getName();
         dto.balance = account.getBalance();
         dto.openedAt = account.getOpenedAt();
         return dto;
     }
- 
+
     // --- Generate(⌘N / Alt+Insert)로 생성된 Getter / Setter ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

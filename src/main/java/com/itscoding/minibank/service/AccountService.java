@@ -4,15 +4,15 @@ import com.itscoding.minibank.domain.Account;
 import com.itscoding.minibank.domain.Customer;
 import com.itscoding.minibank.dto.AccountCreateRequestDto;
 import com.itscoding.minibank.dto.AccountResponseDto;
-import com.itscoding.minibank.exception.AccountNotFoundException; // 다음 단계에서 생성
+import com.itscoding.minibank.exception.AccountNotFoundException;
+import com.itscoding.minibank.exception.CustomerNotFoundException;
 import com.itscoding.minibank.repository.AccountRepository;
 import com.itscoding.minibank.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
+ 
 import java.util.List;
 import java.util.Random;
  
@@ -22,39 +22,36 @@ import java.util.Random;
 public class AccountService {
  
     private final AccountRepository accountRepository;
-    private final CustomerRepository customerRepository;
-
+    private final CustomerRepository customerRepository;   // 고객 조회를 위해 추가
+ 
     @Transactional
     public AccountResponseDto createAccount(AccountCreateRequestDto request) {
-        log.info("계좌 개설 요청 - ownerName={}", request.getOwnerName());
-
-        // 5장 임시 구현: 예금주명으로 고객을 새로 만들어 계좌를 연결한다.
-        // 6장에서 고객 관리 API를 만든 뒤에는 고객 ID로 기존 고객을 찾아 연결한다.
-        Customer owner = customerRepository.save(new Customer(request.getOwnerName(), null));
+        log.info("계좌 개설 요청 - customerId={}", request.getCustomerId());
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new CustomerNotFoundException(request.getCustomerId()));
+ 
         Account account = new Account(generateAccountNumber(), request.getInitialBalance());
-        account.assignCustomer(owner);         // 계좌 쪽에서 고객을 연결한다 (N:1 단방향)
-
+        account.assignCustomer(customer);      // N:1 단방향 — 계좌 쪽에서 고객을 연결한다 (6.6절)
+ 
         Account saved = accountRepository.save(account);
         return AccountResponseDto.from(saved);
     }
-    // 필드에 private final CustomerRepository customerRepository; 를 추가하고,
-    // 조회 메서드에는 @Transactional(readOnly = true)를 붙인다
+ 
     @Transactional(readOnly = true)
     public AccountResponseDto getAccount(Long id) {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new AccountNotFoundException(id));
         return AccountResponseDto.from(account);
     }
-
+ 
     @Transactional(readOnly = true)
     public List<AccountResponseDto> getAllAccounts() {
-        return accountRepository.findAll().stream()
+        return accountRepository.findAll().stream()   // 8장에서 N+1 문제를 해결한다
                 .map(AccountResponseDto::from)
                 .toList();
     }
  
     private String generateAccountNumber() {
-        // 실습 간소화를 위한 임시 채번 (110-XXXX-XXXX 형태)
         return "110-" + (1000 + new Random().nextInt(9000))
                 + "-" + (1000 + new Random().nextInt(9000));
     }
