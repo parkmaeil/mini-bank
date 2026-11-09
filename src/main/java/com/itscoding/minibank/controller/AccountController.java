@@ -1,6 +1,7 @@
 package com.itscoding.minibank.controller;
  
 import com.itscoding.minibank.dto.TransferRequestDto;
+import com.itscoding.minibank.service.AuditService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,6 +24,7 @@ import java.util.List;
 public class AccountController {
  
     private final AccountService accountService;
+    private final AuditService auditService;
  
     // POST /api/accounts (계좌 생성)
     @Operation(summary = "계좌 개설", description = "등록된 고객에게 새 계좌를 개설합니다.")
@@ -59,8 +61,14 @@ public class AccountController {
     // 🔥 [신규] 계좌 이체 엔드포인트
     @PostMapping("/transfer")
     public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
-        accountService.transfer(request);
-        return ResponseEntity.ok().build();   // 성공 시 200 OK
+        try {
+            accountService.transfer(request);
+        } catch (RuntimeException e) {
+            // 이체가 롤백돼도 기록은 남는다
+            auditService.recordFailure("TRANSFER", e.getMessage());
+            // 예외는 다시 던져 전역 처리기로
+            throw e;
+        }
+        return ResponseEntity.ok().build();
     }
-
 }
