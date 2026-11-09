@@ -2,6 +2,7 @@ package com.itscoding.minibank.controller;
  
 import com.itscoding.minibank.dto.TransferRequestDto;
 import com.itscoding.minibank.service.AuditService;
+import com.itscoding.minibank.service.TransferFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -25,7 +26,7 @@ public class AccountController {
  
     private final AccountService accountService;
     private final AuditService auditService;
- 
+    private final TransferFacade transferFacade;   // 필드 추가
     // POST /api/accounts (계좌 생성)
     @Operation(summary = "계좌 개설", description = "등록된 고객에게 새 계좌를 개설합니다.")
     @ApiResponses({
@@ -62,7 +63,8 @@ public class AccountController {
     @PostMapping("/transfer")
     public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
         try {
-            accountService.transfer(request);
+            //accountService.transfer(request);
+            transferFacade.transferWithRetry(request);       // ← 재시도 포함
         } catch (RuntimeException e) {
             // 이체가 롤백돼도 기록은 남는다
             auditService.recordFailure("TRANSFER", e.getMessage());
