@@ -1,5 +1,6 @@
 package com.itscoding.minibank.controller;
  
+import com.itscoding.minibank.dto.TransferRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -54,4 +55,12 @@ public class AccountController {
     public ResponseEntity<List<AccountResponseDto>> getAllAccounts() {
         return ResponseEntity.ok(accountService.getAllAccounts());
     }
+
+    // 🔥 [신규] 계좌 이체 엔드포인트
+    @PostMapping("/transfer")
+    public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
+        accountService.transfer(request);
+        return ResponseEntity.ok().build();   // 성공 시 200 OK
+    }
+
 }
