@@ -43,8 +43,8 @@ class ConcurrentWithdrawTest {
             pool.submit(() -> {
                 start.await();                         // 모든 스레드가 동시에 출발하도록 대기
                 try {
-                    //accountService.transfer(transfer(from, to, "1000"));
-                    transferFacade.transferWithRetry(transfer(from, to, "1000"));
+                    accountService.transfer(transfer(from, to, "1000"));
+                    //transferFacade.transferWithRetry(transfer(from, to, "1000"));
                     success.incrementAndGet();
                 } catch (ObjectOptimisticLockingFailureException e) {
                     conflict.incrementAndGet();
