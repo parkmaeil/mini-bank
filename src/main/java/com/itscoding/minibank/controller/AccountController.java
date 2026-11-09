@@ -60,6 +60,13 @@ public class AccountController {
     }
 
     // 🔥 [신규] 계좌 이체 엔드포인트
+    @Operation(summary = "계좌 이체", description = "출금 계좌에서 입금 계좌로 금액을 옮깁니다. 동시 처리 충돌은 최대 3번까지 자동으로 다시 시도합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "이체 성공"),
+            @ApiResponse(responseCode = "400", description = "입력값 검증 실패 또는 같은 계좌로 이체"),
+            @ApiResponse(responseCode = "404", description = "계좌 없음"),
+            @ApiResponse(responseCode = "409", description = "잔액 부족 또는 동시 처리 충돌")
+    })
     @PostMapping("/transfer")
     public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
         try {
