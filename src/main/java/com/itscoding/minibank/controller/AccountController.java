@@ -87,6 +87,10 @@ public class AccountController {
     }
 
     // 예: GET /api/accounts/page?page=0&size=10&sort=balance,desc
+    @Operation(summary = "계좌 목록 페이지 조회", description = "page(0부터)·size·sort(예: balance,desc)로 계좌를 나눠 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공")
+    })
     @GetMapping("/page")
     public ResponseEntity<Page<AccountResponseDto>> getAccountPage(
             @ParameterObject @PageableDefault(size = 10, sort = "id") Pageable pageable) {
