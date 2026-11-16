@@ -17,6 +17,11 @@ repositories {
 	mavenCentral()
 }
 
+// ① plugins { ... } 블록 아래에 추가 — 사용할 Vaadin 버전을 한 곳에서 정한다
+ext {
+	set('vaadinVersion', "25.3.4")
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
@@ -30,6 +35,12 @@ dependencies {
 	// 🔥 [신규 추가] MySQL 서버와 통신하기 위한 드라이버
 	runtimeOnly 'com.mysql:mysql-connector-j'   // 버전은 Spring Boot가 관리
 
+	// ② 🔥 [신규 추가] Vaadin Flow + Spring Boot 통합 스타터
+	implementation 'com.vaadin:vaadin-spring-boot-starter'
+
+	// ② 🔥 [신규 추가] 개발 모드 전용 도구 — 배포용 Jar에는 포함되지 않는다
+	developmentOnly 'com.vaadin:vaadin-dev'
+
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -38,6 +49,13 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+// ③ 파일 맨 아래에 추가 — Vaadin 라이브러리들의 버전을 BOM으로 일괄 관리한다
+dependencyManagement {
+	imports {
+		mavenBom "com.vaadin:vaadin-bom:${vaadinVersion}"
+	}
 }
 
 tasks.named('test') {
