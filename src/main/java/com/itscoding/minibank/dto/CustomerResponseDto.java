@@ -23,6 +23,16 @@ public class CustomerResponseDto {
         dto.accountCount = accountCount;
         return dto;
     }
- 
-    // getter / setter 생략 (IntelliJ 생성(Generate) 기능으로 만든다)
+     // getter / setter 생략 (IntelliJ 생성(Generate) 기능으로 만든다)
+     public CustomerResponseDto() {
+     }
+
+    // 8.3절 JPQL의 SELECT new가 고객 정보와 계좌 수를 한 번에 담을 때 쓰는 생성자 (COUNT의 결과는 Long)
+    public CustomerResponseDto(Long id, String name, String phone, Long accountCount) {
+        this.id = id;
+        this.name = name;
+        this.phone = phone;
+        this.accountCount = accountCount;
+    }
+
 }

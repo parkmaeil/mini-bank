@@ -12,6 +12,10 @@ import com.itscoding.minibank.dto.AccountCreateRequestDto;
 import com.itscoding.minibank.dto.AccountResponseDto;
 import com.itscoding.minibank.service.AccountService;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -67,6 +71,7 @@ public class AccountController {
             @ApiResponse(responseCode = "404", description = "계좌 없음"),
             @ApiResponse(responseCode = "409", description = "잔액 부족 또는 동시 처리 충돌")
     })
+
     @PostMapping("/transfer")
     public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
         try {
@@ -80,4 +85,12 @@ public class AccountController {
         }
         return ResponseEntity.ok().build();
     }
+
+    // 예: GET /api/accounts/page?page=0&size=10&sort=balance,desc
+    @GetMapping("/page")
+    public ResponseEntity<Page<AccountResponseDto>> getAccountPage(
+            @ParameterObject @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(accountService.getAccountPage(pageable));
+    }
+
 }
