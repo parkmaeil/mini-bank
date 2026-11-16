@@ -1,12 +1,18 @@
 package com.itscoding.minibank.repository;
  
 import com.itscoding.minibank.domain.Account;
+import com.itscoding.minibank.dto.AccountSummaryDto;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
  
 public interface AccountRepository extends JpaRepository<Account, Long> {
@@ -20,5 +26,31 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     long countByCustomerId(Long customerId);      // SELECT COUNT(...) ... WHERE customer_id = ?
 
     boolean existsByCustomerId(Long customerId);  // 한 건이라도 있으면 true — 전부 세지 않는다
+
+    // 8.3절 계좌 + 예금주(Customer)를 SQL 한 번으로 조회 (N+1 해결)
+    @Query("SELECT a FROM Account a JOIN FETCH a.customer")
+    List<Account> findAllWithCustomer();
+
+    // findAll()을 재정의하면서 customer를 함께 조회하도록 지정
+    @Override
+    @EntityGraph(attributePaths = "customer")
+    List<Account> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = "customer")
+    Page<Account> findAll(Pageable pageable);
+
+    // 쿼리 메서드에도 그대로 붙일 수 있다
+    @EntityGraph(attributePaths = "customer")
+    List<Account> findByBalanceGreaterThan(BigDecimal amount);
+
+    @Query("""
+        SELECT new com.itscoding.minibank.dto.AccountSummaryDto(
+            a.accountNumber, c.name, a.balance)
+        FROM Account a JOIN a.customer c
+        ORDER BY a.accountNumber
+        """)
+    List<AccountSummaryDto> findAllSummaries();
+
 
 }

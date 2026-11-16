@@ -1,6 +1,7 @@
 package com.itscoding.minibank.config;
 
 import com.itscoding.minibank.dto.CustomerCreateRequestDto;
+import com.itscoding.minibank.repository.CustomerRepository;
 import com.itscoding.minibank.service.CustomerService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +15,13 @@ import org.springframework.stereotype.Component;
 public class SampleDataLoader {
 
     private final CustomerService customerService;
+    private final CustomerRepository customerRepository;   // CustomerService 대신(또는 함께)
 
     @PostConstruct
     void load() {
         // 이미 데이터가 있으면 건너뜀
-        if (!customerService.getAllCustomers().isEmpty()) return;
+        //if (!customerService.getAllCustomers().isEmpty()) return;
+        if (customerRepository.count() > 0) return;   // select count(*) from customer — 1번
         for (String name : new String[]{"홍길동", "김민준", "이서연"}) {
             CustomerCreateRequestDto dto = new CustomerCreateRequestDto();
             dto.setName(name);

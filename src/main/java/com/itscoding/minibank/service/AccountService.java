@@ -11,6 +11,8 @@ import com.itscoding.minibank.repository.AccountRepository;
 import com.itscoding.minibank.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
  
@@ -44,10 +46,11 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException(id));
         return AccountResponseDto.from(account);
     }
- 
+
     @Transactional(readOnly = true)
     public List<AccountResponseDto> getAllAccounts() {
-        return accountRepository.findAll().stream()   // 8장에서 N+1 문제를 해결한다
+        // findAll() → findAllWithCustomer() : N+1 해결 (8장)
+        return accountRepository.findAllWithCustomer().stream()
                 .map(AccountResponseDto::from)
                 .toList();
     }
@@ -66,6 +69,12 @@ public class AccountService {
         to.deposit(request.getAmount());
         // save()를 호출하지 않아도 Dirty Checking으로 두 계좌 모두 UPDATE된다
     }
+
+    @Transactional(readOnly = true)
+    public Page<AccountResponseDto> getAccountPage(Pageable pageable) {
+        return accountRepository.findAll(pageable).map(AccountResponseDto::from);
+    }
+
 
     private String generateAccountNumber() {
         return "110-" + (1000 + new Random().nextInt(9000))

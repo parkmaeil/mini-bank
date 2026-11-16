@@ -32,14 +32,13 @@ public class CustomerService {
                 .orElseThrow(() -> new CustomerNotFoundException(id));
         return CustomerResponseDto.from(customer, accountRepository.countByCustomerId(id));
     }
- 
+
     @Transactional(readOnly = true)
     public List<CustomerResponseDto> getAllCustomers() {
-        return customerRepository.findAll().stream()   // 고객마다 COUNT 쿼리 — 8장에서 개선한다
-                .map(c -> CustomerResponseDto.from(c, accountRepository.countByCustomerId(c.getId())))
-                .toList();
+        // 고객마다 COUNT 쿼리 → 고객과 계좌 수를 한 번에 : N+1 해결 (8장)
+        return customerRepository.findAllWithAccountCount();
     }
- 
+
     @Transactional
     public void updateCustomer(Long id, CustomerUpdateRequestDto request) {
         Customer customer = customerRepository.findById(id)
@@ -62,9 +61,7 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public List<CustomerResponseDto> searchCustomers(String keyword) {
         if (keyword == null || keyword.isBlank()) return getAllCustomers();
-        return customerRepository.findByNameContainingOrderByNameAsc(keyword.trim()).stream()
-                .map(c -> CustomerResponseDto.from(c, accountRepository.countByCustomerId(c.getId())))
-                .toList();
+        return customerRepository.searchWithAccountCount(keyword.trim());   // 8.3절
     }
 
 }
