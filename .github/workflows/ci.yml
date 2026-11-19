@@ -8,9 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mini-bank     # 백엔드 프로젝트 폴더
     steps:
       - uses: actions/checkout@v4
 
