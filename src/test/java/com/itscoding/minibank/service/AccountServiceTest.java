@@ -11,7 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
- 
+import com.itscoding.minibank.repository.TransactionHistoryRepository;
 import java.math.BigDecimal;
 import java.util.Optional;
  
@@ -23,6 +23,7 @@ import static org.mockito.BDDMockito.given;
 class AccountServiceTest {
     @Mock private AccountRepository accountRepository;
     @Mock private CustomerRepository customerRepository;
+    @Mock private TransactionHistoryRepository transactionHistoryRepository;   // 12.4절 추가
     @InjectMocks private AccountService accountService;
  
     @Test
