@@ -12,3 +12,24 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    # 11.4절 MySQL이 실제로 접속을 받을 수 있는지 5초마다 확인한다
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pminibank1234!"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 11.4절 앱도 같은 Compose 파일에서 함께 띄운다
+  app:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy   # 컨테이너 시작이 아니라 '건강함'까지 기다린다
+    environment:
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: prod                                   # 추가: 운영 프로파일
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/minibank_prod   # 변경: 운영용 DB
+      SPRING_DATASOURCE_USERNAME: minibank
+      SPRING_DATASOURCE_PASSWORD: minibank1234!
+    ports:
+      - "8080:8080"
