@@ -2,13 +2,17 @@ package com.itscoding.minibank.service;
  
 import com.itscoding.minibank.domain.Account;
 import com.itscoding.minibank.domain.Customer;
+import com.itscoding.minibank.domain.TransactionHistory;
+import com.itscoding.minibank.domain.TransactionType;
 import com.itscoding.minibank.dto.AccountCreateRequestDto;
 import com.itscoding.minibank.dto.AccountResponseDto;
+import com.itscoding.minibank.dto.TransactionResponseDto;
 import com.itscoding.minibank.dto.TransferRequestDto;
 import com.itscoding.minibank.exception.AccountNotFoundException;
 import com.itscoding.minibank.exception.CustomerNotFoundException;
 import com.itscoding.minibank.repository.AccountRepository;
 import com.itscoding.minibank.repository.CustomerRepository;
+import com.itscoding.minibank.repository.TransactionHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +30,7 @@ public class AccountService {
  
     private final AccountRepository accountRepository;
     private final CustomerRepository customerRepository;   // 고객 조회를 위해 추가
+    private final TransactionHistoryRepository transactionHistoryRepository;   // 🔥 12.4절 거래내역 저장·조회
  
     @Transactional
     public AccountResponseDto createAccount(AccountCreateRequestDto request) {
@@ -68,6 +73,24 @@ public class AccountService {
         from.withdraw(request.getAmount());   // 잔액 부족 시 InsufficientBalanceException
         to.deposit(request.getAmount());
         // save()를 호출하지 않아도 Dirty Checking으로 두 계좌 모두 UPDATE된다
+
+        // 🔥 12.4절 같은 트랜잭션 안에서 거래내역 두 건(출금·입금)을 남긴다
+        //    → 이체가 롤백되면 거래내역도 함께 사라진다
+        transactionHistoryRepository.save(new TransactionHistory(
+                from, TransactionType.WITHDRAW, request.getAmount(),
+                from.getBalance(), "이체 출금 → " + to.getAccountNumber()));
+        transactionHistoryRepository.save(new TransactionHistory(
+                to, TransactionType.DEPOSIT, request.getAmount(),
+                to.getBalance(), "이체 입금 ← " + from.getAccountNumber()));
+    }
+
+    // 🔥 12.4절 거래내역 조회 (최신순)
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionHistory(Long accountId) {
+        return transactionHistoryRepository.findByAccountIdOrderByTransactedAtDesc(accountId)
+                .stream()
+                .map(TransactionResponseDto::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)

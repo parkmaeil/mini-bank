@@ -1,5 +1,6 @@
 package com.itscoding.minibank.controller;
-
+ 
+import com.itscoding.minibank.dto.TransactionResponseDto;
 import com.itscoding.minibank.dto.TransferRequestDto;
 import com.itscoding.minibank.service.TransferFacade;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +19,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+ 
 import java.util.List;
 
 @Tag(name = "계좌", description = "계좌 개설·조회·이체 API")
@@ -26,7 +27,7 @@ import java.util.List;
 @RequestMapping("/api/accounts") // 이 컨트롤러의 기본 URL 경로를 설정합니다.
 @RequiredArgsConstructor
 public class AccountController {
-
+ 
     private final AccountService accountService;
     private final TransferFacade transferFacade;   // 필드 추가
     // POST /api/accounts (계좌 생성)
@@ -42,7 +43,7 @@ public class AccountController {
         AccountResponseDto response = accountService.createAccount(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response); // 201 Created 반환
     }
-
+ 
     // GET /api/accounts/{id} (단건 조회)
     @Operation(summary = "계좌 단건 조회")
     @ApiResponses({
@@ -53,7 +54,7 @@ public class AccountController {
     public ResponseEntity<AccountResponseDto> getAccount(@PathVariable Long id) {
         return ResponseEntity.ok(accountService.getAccount(id)); // 200 OK 반환
     }
-
+ 
     // GET /api/accounts (전체 조회)
     @Operation(summary = "계좌 전체 조회")
     @GetMapping
@@ -74,6 +75,16 @@ public class AccountController {
     public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
         transferFacade.transferWithRetry(request);   // 재시도·실패 기록은 Facade가 맡는다(12.2절)
         return ResponseEntity.ok().build();
+    }
+
+    // 🔥 12.4절 GET /api/accounts/{id}/transactions (거래내역 조회, 최신순)
+    @Operation(summary = "계좌 거래내역 조회", description = "계좌 id로 거래내역을 최신순으로 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공(거래가 없으면 빈 목록)")
+    })
+    @GetMapping("/{id}/transactions")
+    public ResponseEntity<List<TransactionResponseDto>> getTransactions(@PathVariable Long id) {
+        return ResponseEntity.ok(accountService.getTransactionHistory(id));
     }
 
     // 예: GET /api/accounts/page?page=0&size=10&sort=balance,desc
