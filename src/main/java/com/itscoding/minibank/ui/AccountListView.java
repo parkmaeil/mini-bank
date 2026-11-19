@@ -1,24 +1,34 @@
 package com.itscoding.minibank.ui;
  
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.NumberRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.streams.DownloadHandler;
+import com.vaadin.flow.server.streams.DownloadResponse;
 import com.itscoding.minibank.domain.TransactionType;
 import com.itscoding.minibank.dto.AccountResponseDto;
 import com.itscoding.minibank.dto.TransactionResponseDto;
 import com.itscoding.minibank.service.AccountService;
 import com.itscoding.minibank.service.CustomerService;
 import com.itscoding.minibank.service.TransferFacade;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
+import java.io.ByteArrayInputStream;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -91,7 +101,7 @@ public class AccountListView extends VerticalLayout {
         dialog.open();
     }
 
-    // 🔥 12.5절 거래내역 Dialog
+    // 🔥 12.5절 거래내역 Dialog + 12.7절 기간 검색 + 12.8절 CSV 내려받기
     private void openTransactionDialog(AccountResponseDto account) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(account.getAccountNumber() + " 거래내역 (" + account.getOwnerName() + ")");
@@ -123,18 +133,49 @@ public class AccountListView extends VerticalLayout {
         txGrid.addColumn(TransactionResponseDto::getDescription)
                 .setHeader("메모").setFlexGrow(1);
 
-        var history = accountService.getTransactionHistory(account.getId());
-        txGrid.setItems(history);
         txGrid.setWidthFull();
         txGrid.setAllRowsVisible(true);   // 데이터 개수만큼 높이 자동 조절
 
-        if (history.isEmpty()) {
-            dialog.add(new Span("아직 거래내역이 없습니다."));
-        } else {
-            dialog.add(txGrid);
-        }
-        dialog.getFooter().add(new Button("닫기", e -> dialog.close()));
+        // 12.7절 기간 선택 — 처음에는 이번 달 1일부터 오늘까지
+        DatePicker fromPicker = new DatePicker("시작일", LocalDate.now().withDayOfMonth(1));
+        DatePicker toPicker = new DatePicker("종료일", LocalDate.now());
+        fromPicker.setLocale(Locale.KOREA);
+        toPicker.setLocale(Locale.KOREA);
+        Span summary = new Span();
+
+        Runnable search = () -> {
+            if (fromPicker.isEmpty() || toPicker.isEmpty()) {
+                Notification.show("시작일과 종료일을 모두 골라 주세요.");
+                return;
+            }
+            try {
+                // 최신순으로 첫 페이지 20건만 가져온다 (API의 기본값과 같다)
+                Page<TransactionResponseDto> page = accountService.searchTransactions(
+                        account.getId(), fromPicker.getValue(), toPicker.getValue(),
+                        PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "transactedAt")));
+                txGrid.setItems(page.getContent());
+                summary.setText("총 " + page.getTotalElements() + "건"
+                        + (page.getTotalPages() > 1 ? " (최근 20건 표시)" : ""));
+            } catch (IllegalArgumentException ex) {
+                Notification.show(ex.getMessage());   // 시작일이 종료일보다 늦은 경우
+            }
+        };
+        Button searchButton = new Button("조회", e -> search.run());
+
+        HorizontalLayout filter = new HorizontalLayout(fromPicker, toPicker, searchButton, summary);
+        filter.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.BASELINE);
+
+        // 🔥 12.8절 CSV 내려받기 — /api 주소가 아니라 Vaadin이 직접 파일을 보낸다(14장 보안 뒤에도 그대로 동작)
+        Anchor csvLink = new Anchor(DownloadHandler.fromInputStream(event -> {
+            byte[] csv = accountService.exportTransactionsCsv(account.getId());   // API와 같은 메서드
+            return new DownloadResponse(new ByteArrayInputStream(csv),
+                    "transactions-" + account.getAccountNumber() + ".csv", "text/csv", csv.length);
+        }), "CSV 내려받기");
+
+        dialog.add(filter, txGrid);
+        dialog.getFooter().add(csvLink, new Button("닫기", e -> dialog.close()));
         dialog.setWidth("900px");
+        search.run();   // 열자마자 이번 달 거래를 보여 준다
         dialog.open();
     }
 }

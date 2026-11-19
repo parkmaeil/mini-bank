@@ -15,11 +15,15 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
  
+import java.time.LocalDate;
 import java.util.List;
 
 @Tag(name = "계좌", description = "계좌 개설·조회·이체 API")
@@ -85,6 +89,33 @@ public class AccountController {
     @GetMapping("/{id}/transactions")
     public ResponseEntity<List<TransactionResponseDto>> getTransactions(@PathVariable Long id) {
         return ResponseEntity.ok(accountService.getTransactionHistory(id));
+    }
+
+    // 🔥 12.7절 예: GET /api/accounts/1/transactions/search?from=2026-11-01&to=2026-11-30&page=0&size=20
+    @Operation(summary = "거래내역 기간 검색", description = "시작일~종료일(종료일 포함) 거래를 최신순으로 나눠 조회합니다. 날짜는 2026-11-01 형식입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "시작일이 종료일보다 늦음 또는 날짜 형식 오류")
+    })
+    @GetMapping("/{id}/transactions/search")
+    public ResponseEntity<Page<TransactionResponseDto>> searchTransactions(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @ParameterObject @PageableDefault(size = 20, sort = "transactedAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return ResponseEntity.ok(accountService.searchTransactions(id, from, to, pageable));
+    }
+
+    // 🔥 12.8절 GET /api/accounts/{id}/transactions.csv (엑셀에서 바로 열리는 CSV)
+    @Operation(summary = "거래내역 CSV 다운로드", description = "거래내역을 UTF-8(BOM) CSV 파일로 내려받습니다.")
+    @GetMapping(value = "/{id}/transactions.csv", produces = "text/csv")
+    public ResponseEntity<byte[]> downloadTransactions(@PathVariable Long id) {
+        // Content-Disposition: attachment → 브라우저가 화면에 띄우지 않고 파일로 저장한다
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"transactions-" + id + ".csv\"")
+                .body(accountService.exportTransactionsCsv(id));
     }
 
     // 예: GET /api/accounts/page?page=0&size=10&sort=balance,desc
