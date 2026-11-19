@@ -1,0 +1,9 @@
+build/
+.gradle/
+.idea/
+.git/
+logs/
+.env
+src/main/frontend/generated/
+target/
+node_modules/

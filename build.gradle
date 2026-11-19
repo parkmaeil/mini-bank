@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'jacoco'                                    // 10.7절 테스트 커버리지
+	id 'com.vaadin' version '25.3.4'  // 🔥 ext의 vaadinVersion과 동일
 }
 
 group = 'com.itscoding'
@@ -77,6 +78,10 @@ jacocoTestReport {
 	reports {
 		html.required = true
 	}
+}
+
+jar {
+	enabled = false
 }
 
 tasks.named('test') {
