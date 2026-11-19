@@ -10,6 +10,7 @@ import com.itscoding.minibank.dto.TransactionResponseDto;
 import com.itscoding.minibank.dto.TransferRequestDto;
 import com.itscoding.minibank.exception.AccountNotFoundException;
 import com.itscoding.minibank.exception.CustomerNotFoundException;
+import com.itscoding.minibank.exception.DailyLimitExceededException;
 import com.itscoding.minibank.repository.AccountRepository;
 import com.itscoding.minibank.repository.CustomerRepository;
 import com.itscoding.minibank.repository.TransactionHistoryRepository;
@@ -20,8 +21,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
  
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
@@ -34,6 +38,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final CustomerRepository customerRepository;   // 고객 조회를 위해 추가
     private final TransactionHistoryRepository transactionHistoryRepository;   // 🔥 12.4절 거래내역 저장·조회
+    private final Clock clock;   // 🔥 13장 "오늘"을 정하는 시계 — 3.6절 AppConfig의 Bean(Asia/Seoul), 테스트에서는 고정 시계
  
     @Transactional
     public AccountResponseDto createAccount(AccountCreateRequestDto request) {
@@ -72,6 +77,8 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException(request.getFromAccountNumber()));
         Account to = accountRepository.findByAccountNumber(request.getToAccountNumber())
                 .orElseThrow(() -> new AccountNotFoundException(request.getToAccountNumber()));
+
+        validateDailyLimit(from, request.getAmount());   // 🔥 13장 출금 전에 한도 검증
 
         from.withdraw(request.getAmount());   // 잔액 부족 시 InsufficientBalanceException
         to.deposit(request.getAmount());
@@ -132,6 +139,31 @@ public class AccountService {
             return "\"" + v.replace("\"", "\"\"") + "\"";
         }
         return v;
+    }
+
+    // 🔥 13장 1일 이체 한도 변경
+    @Transactional
+    public AccountResponseDto updateDailyLimit(Long accountId, BigDecimal newLimit) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
+        account.changeDailyLimit(newLimit);   // Dirty Checking으로 UPDATE
+        return AccountResponseDto.from(account);
+    }
+
+    // 🔥 13장 "오늘 0시부터 내일 0시 전까지의 출금 합계 + 이번 금액"이 한도를 넘으면 거부한다
+    private void validateDailyLimit(Account account, BigDecimal requestAmount) {
+        LocalDateTime startOfDay = LocalDate.now(clock).atStartOfDay();   // LocalDate.now()가 아니라 주입받은 시계로
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        BigDecimal usedToday = transactionHistoryRepository
+                .findByAccountIdAndTypeAndTransactedAtBetween(
+                        account.getId(), TransactionType.WITHDRAW, startOfDay, endOfDay)
+                .stream().map(TransactionHistory::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (usedToday.add(requestAmount).compareTo(account.getDailyLimit()) > 0) {
+            throw new DailyLimitExceededException(
+                    account.getAccountNumber(), account.getDailyLimit(), usedToday);
+        }
     }
 
     @Transactional(readOnly = true)
