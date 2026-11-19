@@ -1,7 +1,6 @@
 package com.itscoding.minibank.controller;
- 
+
 import com.itscoding.minibank.dto.TransferRequestDto;
-import com.itscoding.minibank.service.AuditService;
 import com.itscoding.minibank.service.TransferFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,7 +18,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
- 
+
 import java.util.List;
 
 @Tag(name = "계좌", description = "계좌 개설·조회·이체 API")
@@ -27,9 +26,8 @@ import java.util.List;
 @RequestMapping("/api/accounts") // 이 컨트롤러의 기본 URL 경로를 설정합니다.
 @RequiredArgsConstructor
 public class AccountController {
- 
+
     private final AccountService accountService;
-    private final AuditService auditService;
     private final TransferFacade transferFacade;   // 필드 추가
     // POST /api/accounts (계좌 생성)
     @Operation(summary = "계좌 개설", description = "등록된 고객에게 새 계좌를 개설합니다.")
@@ -44,7 +42,7 @@ public class AccountController {
         AccountResponseDto response = accountService.createAccount(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response); // 201 Created 반환
     }
- 
+
     // GET /api/accounts/{id} (단건 조회)
     @Operation(summary = "계좌 단건 조회")
     @ApiResponses({
@@ -55,7 +53,7 @@ public class AccountController {
     public ResponseEntity<AccountResponseDto> getAccount(@PathVariable Long id) {
         return ResponseEntity.ok(accountService.getAccount(id)); // 200 OK 반환
     }
- 
+
     // GET /api/accounts (전체 조회)
     @Operation(summary = "계좌 전체 조회")
     @GetMapping
@@ -74,15 +72,7 @@ public class AccountController {
 
     @PostMapping("/transfer")
     public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequestDto request) {
-        try {
-            //accountService.transfer(request);
-            transferFacade.transferWithRetry(request);       // ← 재시도 포함
-        } catch (RuntimeException e) {
-            // 이체가 롤백돼도 기록은 남는다
-            auditService.recordFailure("TRANSFER", e.getMessage());
-            // 예외는 다시 던져 전역 처리기로
-            throw e;
-        }
+        transferFacade.transferWithRetry(request);   // 재시도·실패 기록은 Facade가 맡는다(12.2절)
         return ResponseEntity.ok().build();
     }
 
