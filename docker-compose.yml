@@ -1,35 +1,34 @@
+# 11.4·11.7절 앱 + MySQL 통합판 (비밀번호는 .env에서 읽는다 — .env.example 참고)
 services:
   mysql:
     image: mysql:8.4.0
     container_name: minibank-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: minibank1234!
+      TZ: Asia/Seoul                              # DB가 기록하는 시각(NOW())도 한국 시각으로
       MYSQL_DATABASE: minibank
       MYSQL_USER: minibank
-      MYSQL_PASSWORD: minibank1234!
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3306:3306"
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-    # 11.4절 MySQL이 실제로 접속을 받을 수 있는지 5초마다 확인한다
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pminibank1234!"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
-  # 11.4절 앱도 같은 Compose 파일에서 함께 띄운다
   app:
     build: .
     depends_on:
       mysql:
-        condition: service_healthy   # 컨테이너 시작이 아니라 '건강함'까지 기다린다
+        condition: service_healthy
     environment:
       TZ: Asia/Seoul
-      SPRING_PROFILES_ACTIVE: prod                                   # 추가: 운영 프로파일
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/minibank_prod   # 변경: 운영용 DB
-      SPRING_DATASOURCE_USERNAME: minibank
-      SPRING_DATASOURCE_PASSWORD: minibank1234!
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/minibank_prod
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8080:8080"
