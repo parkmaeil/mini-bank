@@ -72,4 +72,11 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", "다른 거래가 먼저 처리되었습니다."));
     }
 
+    // 🔥 [13장 추가] 1일 이체 한도 초과 (409)
+    @ExceptionHandler(DailyLimitExceededException.class)
+    public ResponseEntity<Map<String, String>> handleDailyLimit(
+            DailyLimitExceededException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", e.getMessage()));
+    }
 }

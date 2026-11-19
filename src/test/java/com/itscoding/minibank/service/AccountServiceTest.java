@@ -1,7 +1,10 @@
 package com.itscoding.minibank.service;
  
 import com.itscoding.minibank.domain.Account;
+import com.itscoding.minibank.domain.TransactionHistory;
+import com.itscoding.minibank.domain.TransactionType;
 import com.itscoding.minibank.dto.TransferRequestDto;
+import com.itscoding.minibank.exception.DailyLimitExceededException;
 import com.itscoding.minibank.exception.InsufficientBalanceException;
 import com.itscoding.minibank.repository.AccountRepository;
 import com.itscoding.minibank.repository.CustomerRepository;
@@ -10,13 +13,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.itscoding.minibank.repository.TransactionHistoryRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
  
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
  
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +34,8 @@ class AccountServiceTest {
     @Mock private AccountRepository accountRepository;
     @Mock private CustomerRepository customerRepository;
     @Mock private TransactionHistoryRepository transactionHistoryRepository;   // 12.4절 추가
+    // 13장 "오늘"을 고정한 시계 — 언제 실행해도 같은 결과(3.6절에서 Clock을 Bean으로 만든 이유)
+    @Spy private Clock clock = Clock.fixed(Instant.parse("2026-11-19T03:00:00Z"), ZoneId.of("Asia/Seoul"));
     @InjectMocks private AccountService accountService;
  
     @Test
@@ -64,5 +76,30 @@ class AccountServiceTest {
         assertThatThrownBy(() -> accountService.transfer(request))
                 .isInstanceOf(InsufficientBalanceException.class)
                 .hasMessageContaining("잔액이 부족합니다");
+    }
+
+    @Test
+    @DisplayName("1일 한도 초과: 오늘 출금 합계 + 이번 금액이 한도를 넘으면 예외, 잔액은 그대로")
+    void 오늘_출금합계와_이번_금액이_한도를_넘으면_예외가_발생한다() {
+        Account from = new Account("110-1111-1111", new BigDecimal("500000"));
+        Account to = new Account("110-2222-2222", BigDecimal.ZERO);
+        from.changeDailyLimit(new BigDecimal("100000"));
+        given(accountRepository.findByAccountNumber("110-1111-1111")).willReturn(Optional.of(from));
+        given(accountRepository.findByAccountNumber("110-2222-2222")).willReturn(Optional.of(to));
+        // 오늘 이미 60,000원을 출금했다고 가정
+        given(transactionHistoryRepository.findByAccountIdAndTypeAndTransactedAtBetween(
+                any(), eq(TransactionType.WITHDRAW), any(), any()))
+                .willReturn(List.of(new TransactionHistory(from, TransactionType.WITHDRAW,
+                        new BigDecimal("60000"), new BigDecimal("440000"), "이전 이체")));
+
+        TransferRequestDto request = new TransferRequestDto();
+        request.setFromAccountNumber("110-1111-1111");
+        request.setToAccountNumber("110-2222-2222");
+        request.setAmount(new BigDecimal("50000"));   // 60,000 + 50,000 > 100,000
+
+        assertThatThrownBy(() -> accountService.transfer(request))
+                .isInstanceOf(DailyLimitExceededException.class)
+                .hasMessageContaining("오늘 사용액=60,000원");
+        assertThat(from.getBalance()).isEqualByComparingTo("500000");   // 검증이 출금보다 먼저 → 출금되지 않음
     }
 }
