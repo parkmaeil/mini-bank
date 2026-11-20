@@ -1,5 +1,5 @@
 package com.itscoding.minibank.ui;
- 
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
@@ -9,33 +9,36 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.NumberRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.security.AuthenticationContext;
 import com.itscoding.minibank.dto.AccountResponseDto;
 import com.itscoding.minibank.service.AccountService;
 import com.itscoding.minibank.service.CustomerService;
 import com.itscoding.minibank.service.TransferFacade;
+import jakarta.annotation.security.PermitAll;
 
 import java.text.NumberFormat;
 import java.util.Locale;
 
 @Route(value = "accounts", layout = MainLayout.class)
+@PermitAll   // 14.7절 로그인한 직원이면 누구나
 public class AccountListView extends VerticalLayout {
- 
+
     private final AccountService accountService;
     // 🔥 계좌 개설 Dialog에 고객 목록을 넘기기 위해 추가
     private final CustomerService customerService;
     private final TransferFacade transferFacade;   // 🔥 12.2절 이체 화면용
+    private final boolean admin;                   // 14.8절 관리자인가 — 한도 변경 칸을 보여 줄지 정한다
     private final Grid<AccountResponseDto> grid = new Grid<>(AccountResponseDto.class, false);
     private final NumberFormat won = NumberFormat.getIntegerInstance(Locale.KOREA);   // 30,000 형식
- 
+
     public AccountListView(AccountService accountService, CustomerService customerService,
-                           TransferFacade transferFacade) {
+                           TransferFacade transferFacade, AuthenticationContext authContext) {
         this.accountService = accountService;
         this.customerService = customerService;
         this.transferFacade = transferFacade;
- 
+        this.admin = authContext.hasRole("ADMIN");
+
         grid.addColumn(AccountResponseDto::getAccountNumber).setHeader("계좌번호");
-        //grid.addColumn(AccountResponseDto::getOwnerName).setHeader("예금주");
-        //grid.addColumn(AccountResponseDto::getBalance).setHeader("잔액");
 
         grid.addColumn(new NumberRenderer<>(AccountResponseDto::getBalance, won))
                 .setHeader("잔액(원)")
@@ -54,24 +57,25 @@ public class AccountListView extends VerticalLayout {
         grid.setWidthFull();
 
         // 🔥 13장 행을 클릭하면 계좌 상세 Dialog(한도 변경 + 12장의 거래내역)를 연다
+        //    14.8절 관리자인지(admin)를 넘겨 한도 변경 칸을 보여 줄지 정한다
         grid.addItemClickListener(event ->
-                new AccountDetailDialog(event.getItem(), accountService, this::refreshGrid).open());
- 
+                new AccountDetailDialog(event.getItem(), accountService, admin, this::refreshGrid).open());
+
         Button createButton = new Button("새 계좌 개설", e -> openCreateDialog());
         Button transferButton = new Button("계좌 이체", e -> openTransferDialog());   // 🔥 12.2절
         Button refreshButton = new Button("새로고침", e -> refreshGrid());
         Button toCustomers = new Button("고객 관리로 이동",
                 e -> getUI().ifPresent(ui -> ui.navigate("customers")));
- 
+
         add(new HorizontalLayout(createButton, transferButton, refreshButton, toCustomers), grid);
         setSizeFull();
         refreshGrid();
     }
- 
+
     private void refreshGrid() {
         grid.setItems(accountService.getAllAccounts());
     }
- 
+
     private void openCreateDialog() {
         // 🔥 미리 고객 목록을 조회해서 Dialog에 넘겨줌 (ComboBox 채우기용) — 9.6절에서 채운다
         var customers = customerService.getAllCustomers();
