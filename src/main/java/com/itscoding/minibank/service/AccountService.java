@@ -20,7 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
- 
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -142,6 +142,9 @@ public class AccountService {
     }
 
     // 🔥 13장 1일 이체 한도 변경
+    // 🔥 13장 1일 이체 한도 변경
+    // 14.8절 관리자만 — API와 관리 화면 어느 입구로 와도 이 메서드에서 막는다
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public AccountResponseDto updateDailyLimit(Long accountId, BigDecimal newLimit) {
         Account account = accountRepository.findById(accountId)
