@@ -29,7 +29,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
- 
+import com.itscoding.minibank.event.TransferCompletedEvent;
+import com.itscoding.minibank.security.CurrentUser;
+import org.springframework.context.ApplicationEventPublisher;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -39,7 +42,8 @@ public class AccountService {
     private final CustomerRepository customerRepository;   // 고객 조회를 위해 추가
     private final TransactionHistoryRepository transactionHistoryRepository;   // 🔥 12.4절 거래내역 저장·조회
     private final Clock clock;   // 🔥 13장 "오늘"을 정하는 시계 — 3.6절 AppConfig의 Bean(Asia/Seoul), 테스트에서는 고정 시계
- 
+    private final ApplicationEventPublisher eventPublisher;   // 🔥 15.2절 이체 완료 이벤트 발행
+
     @Transactional
     public AccountResponseDto createAccount(AccountCreateRequestDto request) {
         log.info("계좌 개설 요청 - customerId={}", request.getCustomerId());
@@ -92,6 +96,12 @@ public class AccountService {
         transactionHistoryRepository.save(new TransactionHistory(
                 to, TransactionType.DEPOSIT, request.getAmount(),
                 to.getBalance(), "이체 입금 ← " + from.getAccountNumber()));
+
+        // 🔥 15.2절 이체 완료 이벤트 발행 — 실제 처리(알림)는 커밋된 뒤 리스너가 맡는다
+        eventPublisher.publishEvent(new TransferCompletedEvent(
+                from.getAccountNumber(), to.getAccountNumber(), request.getAmount(),
+                CurrentUser.username(), LocalDateTime.now(clock)));
+
     }
 
     // 🔥 12.4절 거래내역 조회 (최신순)

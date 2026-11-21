@@ -16,6 +16,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.itscoding.minibank.repository.TransactionHistoryRepository;
+import org.springframework.context.ApplicationEventPublisher;
+
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -36,6 +38,8 @@ class AccountServiceTest {
     @Mock private TransactionHistoryRepository transactionHistoryRepository;   // 12.4절 추가
     // 13장 "오늘"을 고정한 시계 — 언제 실행해도 같은 결과(3.6절에서 Clock을 Bean으로 만든 이유)
     @Spy private Clock clock = Clock.fixed(Instant.parse("2026-11-19T03:00:00Z"), ZoneId.of("Asia/Seoul"));
+    @Mock private ApplicationEventPublisher eventPublisher;                    // 15장 추가
+
     @InjectMocks private AccountService accountService;
  
     @Test
