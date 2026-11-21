@@ -1,0 +1,66 @@
+/* 미니뱅크 고객용 화면 공통 스타일 */
+:root {
+  --navy: #1f3b63;
+  --red: #c0392b;
+  --green: #2e7d32;
+  --line: #dfe3ea;
+  --bg: #f5f7fa;
+  --text: #222;
+  font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+#root { max-width: 880px; margin: 0 auto; padding: 24px 16px; }
+
+h2 { color: var(--navy); margin: 8px 0 16px; }
+
+button {
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+input, select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+}
+label { display: block; margin-bottom: 14px; font-weight: 600; }
+form { max-width: 420px; }
+
+/* 계좌 카드 (16.4절) */
+.card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 16px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.card-number { color: #666; font-size: .9rem; }
+.card-balance { font-size: 1.5rem; font-weight: 700; margin: 8px 0 14px; }
+
+/* 상단 바 (18.1절) */
+.topbar { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--navy); margin-bottom: 20px; }
+.topbar nav { display: flex; gap: 12px; flex: 1; }
+.topbar a { color: var(--navy); text-decoration: none; padding: 4px 6px; }
+.topbar a.active { font-weight: 700; border-bottom: 2px solid var(--red); }
+
+/* 거래내역 표 (18.3절) */
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+th { background: #e8edf4; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.plus { color: var(--green); font-weight: 600; }
+.minus { color: var(--red); font-weight: 600; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
+
+.error { color: var(--red); }
+.hint { color: #8a5a00; }
