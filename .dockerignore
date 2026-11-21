@@ -7,3 +7,5 @@ logs/
 src/main/frontend/generated/
 target/
 node_modules/
+# 16장 React 프로젝트 — 백엔드 이미지에는 필요 없다(node_modules가 수백 MB)
+minibank-web/
