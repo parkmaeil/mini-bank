@@ -4,7 +4,7 @@ import type { Account } from "../types";
 
 // 17장에서 실제 API로 바꾸기 전까지 쓰는 임시 데이터
 const SAMPLE: Account[] = [
-    { id: 1, accountNumber: "110-9221-2776", ownerName: "홍길동", balance: "30000",
+    { id: 1, accountNumber: "110-9221-2776", ownerName: "홍길동", balance: 30000,
         dailyLimit: 3000000, openedAt: "2026-10-01T10:00:00" },
     { id: 2, accountNumber: "110-2454-5518", ownerName: "홍길동", balance: 20000,
         dailyLimit: 3000000, openedAt: "2026-10-01T10:05:00" },
