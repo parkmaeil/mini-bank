@@ -27,9 +27,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.itscoding.minibank.auth.JwtConfig;
 
 @WebMvcTest(AccountController.class)
-@Import(SecurityConfig.class)              // 14.9절 슬라이스 테스트에 우리 보안 규칙을 포함
+@Import({SecurityConfig.class, JwtConfig.class})   // 14.9절 보안 규칙 포함 (17장부터 JWT 설정도 함께)
 class AccountControllerTest {
 
     @Autowired

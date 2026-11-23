@@ -13,23 +13,34 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)   // JPA 전용 기본 생성자
 public class Customer {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        @Column(nullable = false, length = 50)
-        private String name;
+    @Column(nullable = false, length = 50)
+    private String name;
 
-        @Column(length = 20)
-        private String phone;
+    @Column(length = 20)
+    private String phone;
 
-        public Customer(String name, String phone) {
-            this.name = name;
-            this.phone = phone;
-        }
+    // 17.2절 고객 로그인 계정
+    @Column(unique = true, length = 30)
+    private String username;
 
-        public void updateInfo(String name, String phone) {
-            this.name = name;
-            this.phone = phone;
-        }
+    @Column(length = 100)
+    private String password;          // BCrypt 해시 (원문 저장 금지)
+
+    public Customer(String name, String phone) {
+        this.name = name;
+        this.phone = phone;
     }
+
+    public void assignLogin(String username, String encodedPassword) {
+        this.username = username;
+        this.password = encodedPassword;
+    }
+
+    public void updateInfo(String name, String phone) {
+        this.name = name;
+        this.phone = phone;
+    }
+}

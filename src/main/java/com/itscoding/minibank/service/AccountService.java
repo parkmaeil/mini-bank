@@ -32,6 +32,7 @@ import java.util.Random;
 import com.itscoding.minibank.event.TransferCompletedEvent;
 import com.itscoding.minibank.security.CurrentUser;
 import org.springframework.context.ApplicationEventPublisher;
+import com.itscoding.minibank.exception.AccountAccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -151,6 +152,38 @@ public class AccountService {
         return v;
     }
 
+    // ===== 17.4절 고객용 메서드 =====
+    @Transactional(readOnly = true)
+    public List<AccountResponseDto> getAccountsOf(Long customerId) {
+        return accountRepository.findByCustomerIdOrderByIdAsc(customerId).stream()
+                .map(AccountResponseDto::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponseDto> getMyTransactions(Long customerId, String accountNumber,
+                                                          Pageable pageable) {
+        Account account = findOwnedAccount(customerId, accountNumber);
+        return transactionHistoryRepository
+                .findByAccountIdOrderByTransactedAtDesc(account.getId(), pageable)
+                .map(TransactionResponseDto::from);
+    }
+
+    // 고객 이체 전에 출금 계좌가 "내 것"인지만 확인한다.
+    // 이체 자체는 TransferFacade(7.8절)의 단일 입구를 지나야 재시도·실패 기록·by= 로그가 함께 적용된다
+    @Transactional(readOnly = true)
+    public void verifyOwnership(Long customerId, String accountNumber) {
+        findOwnedAccount(customerId, accountNumber);
+    }
+
+    private Account findOwnedAccount(Long customerId, String accountNumber) {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+        if (!account.getCustomer().getId().equals(customerId)) {
+            throw new AccountAccessDeniedException(accountNumber);     // 403
+        }
+        return account;
+    }
+
     // 🔥 13장 1일 이체 한도 변경
     // 🔥 13장 1일 이체 한도 변경
     // 14.8절 관리자만 — API와 관리 화면 어느 입구로 와도 이 메서드에서 막는다
@@ -183,6 +216,8 @@ public class AccountService {
     public Page<AccountResponseDto> getAccountPage(Pageable pageable) {
         return accountRepository.findAll(pageable).map(AccountResponseDto::from);
     }
+
+
 
 
     private String generateAccountNumber() {

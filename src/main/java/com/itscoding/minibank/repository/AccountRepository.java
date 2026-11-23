@@ -27,6 +27,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByCustomerId(Long customerId);  // 한 건이라도 있으면 true — 전부 세지 않는다
 
+    // 17.4절 고객 한 명의 계좌 목록
+    List<Account> findByCustomerIdOrderByIdAsc(Long customerId);
+
     // 8.3절 계좌 + 예금주(Customer)를 SQL 한 번으로 조회 (N+1 해결)
     @Query("SELECT a FROM Account a JOIN FETCH a.customer")
     List<Account> findAllWithCustomer();
@@ -55,4 +58,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     // 15.5절 이자 지급 배치 — id만 페이지 단위로 조회
     @Query("SELECT a.id FROM Account a")
     List<Long> findIds(Pageable pageable);
+
+
 }
