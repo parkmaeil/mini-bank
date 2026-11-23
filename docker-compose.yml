@@ -1,8 +1,8 @@
-# 11.4·11.7절 앱 + MySQL 통합판 (비밀번호는 .env에서 읽는다 — .env.example 참고)
+# 11.4·11.7절 앱 + MySQL 통합판, 19.4절 web(Nginx) 추가 (비밀번호는 .env에서 읽는다 — .env.example 참고)
 services:
   mysql:
     image: mysql:8.4.0
-    container_name: minibank-mysql
+    container_name: minibank-mysql                # 5장에서 만든 컨테이너를 그대로 이어 쓴다
     environment:
       TZ: Asia/Seoul                              # DB가 기록하는 시각(NOW())도 한국 시각으로
       MYSQL_DATABASE: minibank
@@ -24,11 +24,21 @@ services:
     build: .
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_healthy   # MySQL이 healthy가 된 뒤에 시작
     environment:
-      TZ: Asia/Seoul
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:mysql://mysql:3306/minibank_prod
+      TZ: Asia/Seoul                              # 컨테이너 기본 시간대(UTC)를 한국 시각으로
+      DB_URL: jdbc:mysql://mysql:3306/minibank
       DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}                   # 19.4절 고객 토큰 서명 키
+    # 19.4절 외부 포트를 열지 않는다 — web(Nginx)을 통해서만 접근
+    # (Vaadin 직원 화면까지 열어 보려면 아래 두 줄의 주석을 푼다)
+    # ports:
+    #   - "8080:8080"
+
+  # 19.4절 React 화면 + /api 전달 (Nginx)
+  web:
+    build: ./minibank-web
     ports:
-      - "8080:8080"
+      - "80:80"
+    depends_on:
+      - app
