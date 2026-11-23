@@ -30,7 +30,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
- 
+import com.itscoding.minibank.domain.Customer;
+import com.itscoding.minibank.exception.AccountAccessDeniedException;
+import org.springframework.test.util.ReflectionTestUtils;
+
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
     @Mock private AccountRepository accountRepository;
@@ -105,5 +108,18 @@ class AccountServiceTest {
                 .isInstanceOf(DailyLimitExceededException.class)
                 .hasMessageContaining("오늘 사용액=60,000원");
         assertThat(from.getBalance()).isEqualByComparingTo("500000");   // 검증이 출금보다 먼저 → 출금되지 않음
+    }
+
+    // 17.4절 소유권 검사 — 남의 계좌에서는 이체할 수 없다(IDOR 방어)
+    @Test
+    void 다른_고객의_계좌는_소유권_검사에서_AccountAccessDeniedException이_발생한다() {
+        Customer owner = new Customer("홍길동", "010-1111-2222");
+        ReflectionTestUtils.setField(owner, "id", 1L);          // 저장하지 않았으므로 id를 직접 넣는다
+        Account from = new Account("110-1111-1111", new BigDecimal("50000"));
+        from.assignCustomer(owner);
+        given(accountRepository.findByAccountNumber("110-1111-1111")).willReturn(Optional.of(from));
+
+        assertThatThrownBy(() -> accountService.verifyOwnership(2L, "110-1111-1111"))   // 2번 고객이 시도
+                .isInstanceOf(AccountAccessDeniedException.class);
     }
 }

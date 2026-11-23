@@ -7,7 +7,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Map;
 
 @RestControllerAdvice // 애플리케이션 전역에서 발생하는 예외를 낚아채서 처리합니다.
@@ -84,6 +84,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDailyLimit(
             DailyLimitExceededException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    // [17장 추가] 고객 로그인 실패 (401)
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    // [17장 추가] 다른 고객의 계좌에 접근 (403)
+    @ExceptionHandler(AccountAccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(AccountAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("message", e.getMessage()));
     }
 }

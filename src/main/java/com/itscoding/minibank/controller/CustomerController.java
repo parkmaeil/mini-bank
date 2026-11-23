@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.itscoding.minibank.dto.LoginIssueRequestDto;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +76,21 @@ public class CustomerController {
     public ResponseEntity<Void> updateCustomer(
             @PathVariable Long id, @Valid @RequestBody CustomerUpdateRequestDto request) {
         customerService.updateCustomer(id, request);
+        return ResponseEntity.ok().build();
+    }
+
+    // 17.2절 직원용(14장의 Basic 인증 적용 대상) — 고객에게 로그인 계정 발급
+    @Operation(summary = "로그인 계정 발급", description = "직원이 고객에게 로그인 아이디와 비밀번호를 발급합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "발급 성공"),
+            @ApiResponse(responseCode = "400", description = "입력값 검증 실패"),
+            @ApiResponse(responseCode = "404", description = "고객 없음"),
+            @ApiResponse(responseCode = "409", description = "이미 사용 중인 아이디")
+    })
+    @PostMapping("/{id}/login")
+    public ResponseEntity<Void> issueLogin(@PathVariable Long id,
+                                           @Valid @RequestBody LoginIssueRequestDto request) {
+        customerService.issueLogin(id, request.getUsername(), request.getPassword());
         return ResponseEntity.ok().build();
     }
 
